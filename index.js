@@ -541,6 +541,16 @@ app.get("/users/:email", async (req, res) => {
 });
 
 
+app.get('/all-orders', async (req, res) => { 
+  try {
+    const result = await purchasesCollection.find({}).toArray();  
+    res.send(result); 
+  } catch (error) {
+    console.error("Error fetching all orders:", error);
+    res.status(500).json({ error: "Failed to fetch all orders" });
+  }
+});
+
 
 
 
