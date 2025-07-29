@@ -125,6 +125,19 @@ app.get("/products/all", async (req, res) => {
   }
 });
 
+app.get("/products/all-no-limit", async (req, res) => {
+  try {
+    const products = await productsCollection
+      .find({ status: "approved" })  
+      .toArray();  
+
+    res.status(200).json(products);  
+  } catch (error) {
+    console.error("Error fetching all approved products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
+
 
 
 
