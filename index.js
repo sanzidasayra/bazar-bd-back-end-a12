@@ -101,10 +101,8 @@ app.get("/products/vendor", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch vendor products" });
   }
 });
-
-
-
   
+
 app.get("/products/all", async (req, res) => {
   try {
     let { page = 0, size = 6 } = req.query;
