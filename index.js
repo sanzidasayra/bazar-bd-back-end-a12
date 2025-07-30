@@ -32,7 +32,7 @@ async function run() {
   try {
    
     
-    await client.connect();
+    // await client.connect();
     const database = client.db("bazarBD");
     const productsCollection = database.collection("products");
     const usersCollection = database.collection("users");
@@ -681,8 +681,8 @@ app.post('/orders', async (req, res) => {
       }
     });
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Successfully connected to MongoDB!");
   } catch (error) {
     console.error("Error in MongoDB connection:", error);
   }
