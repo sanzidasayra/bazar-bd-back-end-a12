@@ -71,7 +71,7 @@ async function run() {
   try {
     const products = await productsCollection
       .find({ status: "approved" })
-      .limit(6)
+      .limit(8)
       .toArray();
     res.status(200).json(products); 
     
