@@ -10,12 +10,11 @@ const port = process.env.PORT || 5000;
 const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_KEY);
 
 
-const multer = require("multer");
 const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // server এর root এ uploads folder থাকতে হবে
+    cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
@@ -615,6 +614,7 @@ app.post('/orders', async (req, res) => {
   } catch (error) {
     console.error("Error saving ad:", error);
     res.status(500).json({ success: false, error: "Failed to submit ad" });
+    
   }
 });
 
