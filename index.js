@@ -9,12 +9,29 @@ const port = process.env.PORT || 5000;
 
 const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_KEY);
 
+
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // server এর root এ uploads folder থাকতে হবে
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
+});
+
+const upload = multer({ storage });
+
 app.use(cors()); 
 app.use(express.json()); 
+app.use("/uploads", express.static("uploads"));
 
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+
 
 
 
@@ -573,30 +590,33 @@ app.post('/orders', async (req, res) => {
 
 
 
+
     
-    app.post("/advertisements", async (req, res) => {
-      try {
-        const { adTitle, description, vendorEmail } = req.body;
+    app.post("/advertisements", upload.single("image"), async (req, res) => {
+  try {
+    const { adTitle, description, vendorEmail } = req.body;
 
-        if (!adTitle || !description || !vendorEmail ) {
-          return res.status(400).json({ message: "All fields are required!" });
-        }
+    if (!adTitle || !description || !vendorEmail || !req.file) {
+      return res.status(400).json({ message: "All fields are required!" });
+    }
 
-        const adData = {
-          adTitle,
-          description,
-          vendorEmail,
-          status: "pending",
-          createdAt: new Date(),
-        };
+    const adData = {
+      adTitle,
+      description,
+      vendorEmail,
+      image: `/uploads/${req.file.filename}`, // ✅ file path
+      status: "pending",
+      createdAt: new Date(),
+    };
 
-        const result = await advertisementsCollection.insertOne(adData);
-        res.send({ success: true, insertedId: result.insertedId });
-      } catch (error) {
-        console.error("Error saving advertisement:", error);
-        res.status(500).send({ success: false, error: "Failed to submit ad" });
-      }
-    });
+    const result = await advertisementsCollection.insertOne(adData);
+
+    res.status(201).json({ success: true, insertedId: result.insertedId });
+  } catch (error) {
+    console.error("Error saving ad:", error);
+    res.status(500).json({ success: false, error: "Failed to submit ad" });
+  }
+});
 
     
     app.get("/advertisements", async (req, res) => {
