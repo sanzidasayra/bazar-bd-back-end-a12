@@ -4,8 +4,22 @@ const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const stripe = require("stripe")(process.env.PAYMENT_GATEWAY_KEY);
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "bazarbd", // Folder name in your Cloudinary account
+    allowed_formats: ["jpeg", "png", "jpg"],
+  },
+});
+
+const upload = multer({ storage: storage });
+
 
 app.use(cors());
 app.use(express.json());
