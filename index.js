@@ -38,7 +38,6 @@ export const upload = multer({ storage });
 
 app.use(cors()); 
 app.use(express.json()); 
-app.use("/uploads", express.static("uploads"));
 
 
 
