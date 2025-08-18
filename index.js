@@ -129,64 +129,69 @@ const newsletterCollection = database.collection("newsletter");
     });
 
     app.get("/products/search", async (req, res) => {
-      try {
-        const { sort, date, from, to, status, page = 0, size = 6 } = req.query;
+  try {
+    const { sort, date, from, to, status, category, page = 0, size = 6 } = req.query; // ✅ category add
 
-        const query = {};
-        if (status) query.status = status;
+    const query = {};
+    if (status) query.status = status;
 
-        if (date) {
-          const selectedDate = new Date(date);
-          selectedDate.setHours(0, 0, 0, 0);
-          const nextDay = new Date(selectedDate);
-          nextDay.setDate(selectedDate.getDate() + 1);
-          query["prices"] = {
-            $elemMatch: {
-              date: { $gte: selectedDate, $lt: nextDay },
-            },
-          };
-        }
+    if (category) {
+      // ✅ case-insensitive match
+      query.category = { $regex: new RegExp(`^${category}$`, "i") };
+    }
 
-        if (from && to) {
-          const fromDate = new Date(from);
-          fromDate.setHours(0, 0, 0, 0);
-          const toDate = new Date(to);
-          toDate.setHours(23, 59, 59, 999);
-          query["prices"] = {
-            $elemMatch: {
-              date: { $gte: fromDate, $lte: toDate },
-            },
-          };
-        }
+    if (date) {
+      const selectedDate = new Date(date);
+      selectedDate.setHours(0, 0, 0, 0);
+      const nextDay = new Date(selectedDate);
+      nextDay.setDate(selectedDate.getDate() + 1);
+      query["prices"] = {
+        $elemMatch: {
+          date: { $gte: selectedDate, $lt: nextDay },
+        },
+      };
+    }
 
-        const total = await productsCollection.countDocuments(query);
+    if (from && to) {
+      const fromDate = new Date(from);
+      fromDate.setHours(0, 0, 0, 0);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+      query["prices"] = {
+        $elemMatch: {
+          date: { $gte: fromDate, $lte: toDate },
+        },
+      };
+    }
 
-        let products = await productsCollection
-          .find(query)
-          .skip(parseInt(page) * parseInt(size))
-          .limit(parseInt(size))
-          .toArray();
+    const total = await productsCollection.countDocuments(query);
 
-        if (sort === "asc") {
-          products.sort((a, b) => {
-            const priceA = a.prices?.[0]?.price ?? Infinity;
-            const priceB = b.prices?.[0]?.price ?? Infinity;
-            return priceA - priceB;
-          });
-        } else if (sort === "desc") {
-          products.sort((a, b) => {
-            const priceA = a.prices?.[0]?.price ?? -Infinity;
-            const priceB = b.prices?.[0]?.price ?? -Infinity;
-            return priceB - priceA;
-          });
-        }
+    let products = await productsCollection
+      .find(query)
+      .skip(parseInt(page) * parseInt(size))
+      .limit(parseInt(size))
+      .toArray();
 
-        res.status(200).json({ total, products });
-      } catch (error) {
-        console.error("Error fetching filtered/sorted products:", error);
-        res.status(500).json({ error: "Failed to fetch products" });
-      }
-    });
+    if (sort === "asc") {
+      products.sort((a, b) => {
+        const priceA = a.prices?.[0]?.price ?? Infinity;
+        const priceB = b.prices?.[0]?.price ?? Infinity;
+        return priceA - priceB;
+      });
+    } else if (sort === "desc") {
+      products.sort((a, b) => {
+        const priceA = a.prices?.[0]?.price ?? -Infinity;
+        const priceB = b.prices?.[0]?.price ?? -Infinity;
+        return priceB - priceA;
+      });
+    }
+
+    res.status(200).json({ total, products });
+  } catch (error) {
+    console.error("Error fetching filtered/sorted products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
 
     app.get("/reviews", async (req, res) => {
       const { productId, rating, sortByDate } = req.query;
