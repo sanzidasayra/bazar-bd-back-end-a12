@@ -5,7 +5,6 @@ import { upload } from "./cloudinary.js"; // import the configured upload
 
 
 const express = require("express");
-const multer = require("multer");
 const cors = require("cors");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
