@@ -29,7 +29,7 @@ async function run() {
     const purchasesCollection = database.collection("purchase");
     const reviewsCollection = database.collection("reviews");
     const watchlistCollection = database.collection("watchlist");
-    const newsletterCollection = db.collection("newsletter");
+const newsletterCollection = database.collection("newsletter");
 
     app.post("/products", async (req, res) => {
       try {
