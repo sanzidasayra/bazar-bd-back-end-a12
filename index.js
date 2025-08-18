@@ -2,8 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
-const { cloudinary, upload } = require("./cloudinary.js");
-
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -533,79 +531,57 @@ async function run() {
       }
     });
 
-    app.post("/advertisements", upload.single("image"), async (req, res) => {
-      try {
-        const { adTitle, description, vendorEmail } = req.body;
+app.post("/advertisements", async (req, res) => {
+  try {
+    const { adTitle, description, vendorEmail, imageUrl } = req.body;
 
-        // Validate required fields
-        if (!adTitle || !description || !vendorEmail) {
-          return res.status(400).json({
-            success: false,
-            message: "Title, description, and vendor email are required!",
-          });
-        }
+    // Validate required fields
+    if (!adTitle || !description || !vendorEmail || !imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, vendor email, and image URL are required!",
+      });
+    }
 
-        // Check if image was uploaded
-        if (!req.file) {
-          return res.status(400).json({
-            success: false,
-            message: "Image is required!",
-          });
-        }
+    // Verify vendor exists
+    const vendor = await usersCollection.findOne({ email: vendorEmail });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found!",
+      });
+    }
 
-        // Verify vendor exists
-        const vendor = await usersCollection.findOne({ email: vendorEmail });
-        if (!vendor) {
-          // If upload was successful but vendor doesn't exist, delete the uploaded image
-          if (req.file && req.file.public_id) {
-            await cloudinary.uploader.destroy(req.file.public_id);
-          }
-          return res.status(404).json({
-            success: false,
-            message: "Vendor not found!",
-          });
-        }
+    // Create advertisement data
+    const adData = {
+      adTitle: adTitle.trim(),
+      description: description.trim(),
+      vendorEmail: vendorEmail.toLowerCase(),
+      vendorName: vendor.name || "Unknown Vendor",
+      imageUrl: imageUrl.trim(), // just use the URL
+      status: "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-        // Create advertisement data
-        const adData = {
-          adTitle: adTitle.trim(),
-          description: description.trim(),
-          vendorEmail: vendorEmail.toLowerCase(),
-          vendorName: vendor.name || "Unknown Vendor",
-          image: req.file.path, // Cloudinary URL
-          imagePublicId: req.file.public_id, // Store for potential deletion
-          status: "pending",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
+    // Insert into database
+    const result = await advertisementsCollection.insertOne(adData);
 
-        // Insert into database
-        const result = await advertisementsCollection.insertOne(adData);
-
-        res.status(201).json({
-          success: true,
-          message: "Advertisement submitted successfully!",
-          insertedId: result.insertedId,
-          imageUrl: req.file.path,
-        });
-      } catch (error) {
-        console.error("Error saving advertisement:", error);
-
-        // If there was an error and image was uploaded, try to delete it
-        if (req.file && req.file.public_id) {
-          try {
-            await cloudinary.uploader.destroy(req.file.public_id);
-          } catch (deleteError) {
-            console.error("Error deleting uploaded image:", deleteError);
-          }
-        }
-
-        res.status(500).json({
-          success: false,
-          error: "Failed to submit advertisement. Please try again.",
-        });
-      }
+    res.status(201).json({
+      success: true,
+      message: "Advertisement submitted successfully!",
+      insertedId: result.insertedId,
+      imageUrl: imageUrl,
     });
+  } catch (error) {
+    console.error("Error saving advertisement:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to submit advertisement. Please try again.",
+    });
+  }
+});
+
 
     app.get("/advertisements", async (req, res) => {
       const { status, email } = req.query;
