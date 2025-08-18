@@ -1,3 +1,9 @@
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import multer from "multer";
+import { upload } from "./cloudinary.js"; // import the configured upload
+
+
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
@@ -12,18 +18,24 @@ const stripe = require('stripe')(process.env.PAYMENT_GATEWAY_KEY);
 
 const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+  api_key: process.env.CLOUDINARY_API_KEY, 
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "bazarbd_ads", // folder name in Cloudinary
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    public_id: (req, file) => Date.now() + "-" + file.originalname, // unique filename
   },
 });
 
-const upload = multer({ storage });
+
+export const upload = multer({ storage });
 
 app.use(cors()); 
 app.use(express.json()); 
@@ -591,7 +603,7 @@ app.post('/orders', async (req, res) => {
 
 
     
-    app.post("/advertisements", upload.single("image"), async (req, res) => {
+ app.post("/advertisements", upload.single("image"), async (req, res) => {
   try {
     const { adTitle, description, vendorEmail } = req.body;
 
@@ -599,11 +611,12 @@ app.post('/orders', async (req, res) => {
       return res.status(400).json({ message: "All fields are required!" });
     }
 
+    // ✅ Cloudinary automatically adds `req.file.path` with the uploaded image URL
     const adData = {
       adTitle,
       description,
       vendorEmail,
-      image: `/uploads/${req.file.filename}`, // ✅ file path
+      image: req.file.path,  // cloudinary URL instead of /uploads/filename
       status: "pending",
       createdAt: new Date(),
     };
@@ -614,10 +627,8 @@ app.post('/orders', async (req, res) => {
   } catch (error) {
     console.error("Error saving ad:", error);
     res.status(500).json({ success: false, error: "Failed to submit ad" });
-    
   }
 });
-
     
     app.get("/advertisements", async (req, res) => {
       const { status, email } = req.query;
