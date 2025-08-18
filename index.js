@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
+const { ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -29,6 +30,7 @@ async function run() {
     const purchasesCollection = database.collection("purchase");
     const reviewsCollection = database.collection("reviews");
     const watchlistCollection = database.collection("watchlist");
+    const newsletterCollection = db.collection("newsletter");
 
     app.post("/products", async (req, res) => {
       try {
@@ -670,30 +672,39 @@ app.post("/advertisements", async (req, res) => {
       }
     });
 
-    app.patch("/advertisements/:id", async (req, res) => {
-      const { id } = req.params;
-      const { status } = req.body;
 
-      if (!status) {
-        return res.status(400).json({ error: "Status is required" });
-      }
+app.patch("/advertisements/:id", async (req, res) => {
+  console.log("PATCH request received for ID:", req.params.id);
+  const { id } = req.params;
+  const { status } = req.body;
 
-      try {
-        const result = await advertisementsCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { status } }
-        );
+  if (!status) return res.status(400).json({ error: "Status is required" });
 
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: "Advertisement not found" });
-        }
+  let objectId;
+  try {
+    objectId = new ObjectId(id); // ensure valid ObjectId
+  } catch {
+    return res.status(400).json({ error: "Invalid advertisement ID format" });
+  }
 
-        res.send({ success: true, message: "Status updated successfully" });
-      } catch (error) {
-        console.error("Error updating ad status:", error);
-        res.status(500).json({ error: "Failed to update status" });
-      }
-    });
+  try {
+    const ad = await advertisementsCollection.findOne({ _id: objectId });
+    if (!ad) {
+      return res.status(404).json({ error: "Advertisement not found" });
+    }
+
+    await advertisementsCollection.updateOne(
+      { _id: objectId },
+      { $set: { status } }
+    );
+
+    res.json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    console.error("Error updating ad status:", error);
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
+
 
     app.delete("/advertisements/:id", async (req, res) => {
       const id = req.params.id;
@@ -739,6 +750,42 @@ app.post("/advertisements", async (req, res) => {
         res.status(500).json({ error: "Failed to delete advertisement" });
       }
     });
+
+
+    app.post("/newsletter", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required" });
+
+  try {
+    // Check if already exists
+    const exists = await newsletterCollection.findOne({ email });
+    if (exists) return res.status(409).json({ message: "Already subscribed" });
+
+    const subscriber = { email, subscribedAt: new Date() };
+    await newsletterCollection.insertOne(subscriber);
+
+    res.status(201).json({ message: "Subscribed successfully", subscriber });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all subscribers (Admin)
+app.get("/newsletter", async (req, res) => {
+  try {
+    const subscribers = await newsletterCollection
+      .find({})
+      .sort({ subscribedAt: -1 })
+      .toArray();
+    res.json(subscribers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
     // Keep all your other existing routes...
     // (products, users, watchlist, orders, etc.)
