@@ -12,7 +12,7 @@ cloudinary.config({
 
 // Configure Cloudinary Storage for Multer
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
     folder: "advertisements", // Folder name in Cloudinary
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
@@ -21,26 +21,30 @@ const storage = new CloudinaryStorage({
         width: 800,
         height: 600,
         crop: "limit",
-        quality: "auto:good"
-      }
-    ]
+        quality: "auto:good",
+      },
+    ],
   },
 });
 
 // Configure Multer with Cloudinary Storage
-const upload = multer({ 
-  storage: storage,
+const upload = multer({
+  storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Check file type
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
+    try {
+      // Ensure mimetype exists before checking
+      if (file && file.mimetype && file.mimetype.startsWith("image/")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only image files are allowed!"), false);
+      }
+    } catch (err) {
+      cb(new Error("File validation failed!"), false);
     }
-  }
+  },
 });
 
 module.exports = { cloudinary, upload };
