@@ -24,17 +24,6 @@ cloudinary.config({
 });
 
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "bazarbd_ads", // folder name in Cloudinary
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    public_id: (req, file) => Date.now() + "-" + file.originalname, // unique filename
-  },
-});
-
-
-export const upload = multer({ storage });
 
 app.use(cors()); 
 app.use(express.json()); 
