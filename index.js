@@ -292,28 +292,50 @@ const newsletterCollection = database.collection("newsletter");
       }
     });
 
-    app.put("/products/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedData = req.body;
-      try {
-        if (!ObjectId.isValid(id)) {
-          return res.status(400).send({ error: "Invalid Product ID" });
-        }
-        const result = await productsCollection.updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updatedData }
-        );
-        if (result.modifiedCount === 0) {
-          return res
-            .status(404)
-            .send({ error: "Product not found or no changes made" });
-        }
-        res.send({ success: true, message: "Product updated successfully" });
-      } catch (error) {
-        console.error("Error updating product:", error);
-        res.status(500).send({ error: "Update failed" });
-      }
-    });
+ app.put("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const { itemName, productImage, marketName, itemDescription, pricePerUnit, marketDate } = req.body;
+
+  try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({ error: "Invalid Product ID" });
+    }
+
+    // Create new price entry if price/date provided
+    let updateData = {
+      itemName,
+      productImage,
+      marketName,
+      itemDescription,
+    };
+
+    let updateOps = { $set: updateData };
+
+    if (pricePerUnit && marketDate) {
+      updateOps.$push = {
+        prices: {
+          price: parseFloat(pricePerUnit),
+          date: new Date(marketDate),
+        },
+      };
+    }
+
+    const result = await productsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateOps
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send({ error: "Product not found or no changes made" });
+    }
+
+    res.send({ success: true, message: "Product updated successfully" });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).send({ error: "Update failed" });
+  }
+});
+
 
     app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
